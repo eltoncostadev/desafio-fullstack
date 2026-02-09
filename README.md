@@ -24,7 +24,7 @@ O diretório `backend/` contém um `docker-compose.yml` simples com a API NestJS
 2. Copie o arquivo de variáveis: `cp .env.example .env` (ajuste valores conforme necessário).
 3. Suba os serviços: `docker compose up --build`.
 
-O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados.
+O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados. A documentação Swagger fica disponível em `http://localhost:3000/docs`, com autenticação Bearer habilitada.
 
 ## Docker (frontend)
 
@@ -34,4 +34,4 @@ O diretório `frontend/` possui um `docker-compose.yml` simples para rodar o Vit
 2. Copie as variáveis padrão: `cp .env.example .env` (mantenha `VITE_APP_PORT=5173` ou escolha outra porta livre).
 3. Suba o container: `docker compose up --build`.
 
-O serviço `web` utiliza `npm run dev -- --host 0.0.0.0` para expor a porta 5173 no host, montando o diretório raiz em modo bind para preservar o hot reload.
+O serviço `web` utiliza `npx nx dev frontend -- --host 0.0.0.0` para expor a porta 5173 no host, montando o diretório raiz em modo bind para preservar o hot reload.
