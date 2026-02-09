@@ -1,5 +1,5 @@
 ﻿import { Body, Controller, Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
@@ -10,8 +10,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @ApiOperation({ summary: 'Efetua login fictício e retorna um token mockado.' })
-  login(@Body() loginDto: LoginDto): LoginResponseDto {
+  @ApiOperation({ summary: 'Efetua login e retorna um JWT válido.' })
+  @ApiOkResponse({ type: LoginResponseDto })
+  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(loginDto);
   }
 }

@@ -26,6 +26,12 @@ O diretório `backend/` contém um `docker-compose.yml` simples com a API NestJS
 
 O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados. A documentação Swagger fica disponível em `http://localhost:3000/docs`, com autenticação Bearer habilitada.
 
+### Autenticação
+
+- Use as variáveis `AUTH_EMAIL` e `AUTH_PASSWORD` (definidas no `backend/.env`) para validar o login em `POST /auth/login`.
+- O JWT é gerado com `JWT_SECRET` e `JWT_EXPIRES_IN`; atualize esses valores para ambientes reais.
+- Todos os endpoints de clientes exigem um token Bearer válido — obtenha-o em `/auth/login` e informe no Swagger ou nos headers das requisições.
+
 ## Docker (frontend)
 
 O diretório `frontend/` possui um `docker-compose.yml` simples para rodar o Vite com hot reload.
