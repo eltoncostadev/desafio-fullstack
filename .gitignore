@@ -1,0 +1,35 @@
+﻿# Dependências Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Saídas de build
+build/
+dist/
+.tmp/
+tmp/
+.out/
+
+# Nx
+.nx/cache/
+.nx/workspace-data/ 
+.idea/
+
+# Vite
+.vite/
+*.tsbuildinfo
+
+# Ambiente e credenciais
+.env
+.env.*
+!.env.example
+
+# Docker
+**/.docker-volume/
+.docker/
+Dockerfile.local
