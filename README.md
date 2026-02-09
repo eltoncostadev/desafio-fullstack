@@ -15,3 +15,13 @@ Este repositório contém um desafio técnico full-stack em formato MVP, servind
 3. Build backend: `npx nx build backend`.
 
 Todos os comandos utilizam o Nx com npm seguindo os padrões recomendados. Ainda não há lógica de negócio implementada; as aplicações servem como base para as próximas etapas do desafio.
+
+## Docker (backend)
+
+O diretório `backend/` contém um `docker-compose.yml` simples com a API NestJS e um PostgreSQL local.
+
+1. Entre na pasta: `cd backend`.
+2. Copie o arquivo de variáveis: `cp .env.example .env` (ajuste valores conforme necessário).
+3. Suba os serviços: `docker compose up --build`.
+
+O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados.

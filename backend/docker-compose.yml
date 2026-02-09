@@ -1,0 +1,31 @@
+﻿version: "3.9"
+
+services:
+  api:
+    image: node:20-alpine
+    container_name: desafio-backend-api
+    env_file:
+      - .env
+    working_dir: /workspace
+    command: >-
+      sh -c "npm install && npx nx serve backend --configuration=development"
+    ports:
+      - "${API_PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ../:/workspace
+    depends_on:
+      postgres:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: desafio-backend-postgres
+    env_file:
+      - .env
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
