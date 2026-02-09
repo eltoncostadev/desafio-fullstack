@@ -1,0 +1,17 @@
+﻿version: "3.9"
+
+services:
+  web:
+    image: node:20-alpine
+    container_name: desafio-frontend-web
+    env_file:
+      - .env
+    working_dir: /workspace/frontend
+    command: >-
+      sh -c "npm install && npx nx dev frontend -- --host 0.0.0.0 --port ${VITE_APP_PORT:-5173}"
+    ports:
+      - "${VITE_APP_PORT:-5173}:5173"
+    volumes:
+      - ../:/workspace
+    environment:
+      - WATCHPACK_POLLING=true
