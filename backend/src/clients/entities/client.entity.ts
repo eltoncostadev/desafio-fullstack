@@ -18,6 +18,12 @@ export class ClientEntity {
   @Column({ unique: true })
   email!: string;
 
+  @Column({ nullable: true })
+  phone?: string;
+
+  @Column({ nullable: true, type: 'text' })
+  notes?: string;
+
   @Column({ type: 'int', default: 0 })
   accessCount!: number;
 

@@ -32,21 +32,21 @@ export class ClientsController {
   @Get()
   @ApiOperation({ summary: 'Lista todos os clientes' })
   @ApiOkResponse({ type: ClientResponseDto, isArray: true })
-  findAll(): ClientResponseDto[] {
+  findAll(): Promise<ClientResponseDto[]> {
     return this.clientsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtém detalhes de um cliente pelo ID' })
   @ApiOkResponse({ type: ClientResponseDto })
-  findOne(@Param('id') id: string): ClientResponseDto {
+  findOne(@Param('id') id: string): Promise<ClientResponseDto> {
     return this.clientsService.findOne(id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo cliente' })
   @ApiCreatedResponse({ type: ClientResponseDto })
-  create(@Body() dto: CreateClientDto): ClientResponseDto {
+  create(@Body() dto: CreateClientDto): Promise<ClientResponseDto> {
     return this.clientsService.create(dto);
   }
 
@@ -56,14 +56,14 @@ export class ClientsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateClientDto,
-  ): ClientResponseDto {
+  ): Promise<ClientResponseDto> {
     return this.clientsService.update(id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Remove um cliente' })
   @ApiNoContentResponse({ description: 'Cliente removido com sucesso' })
-  remove(@Param('id') id: string): void {
-    this.clientsService.remove(id);
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.clientsService.remove(id);
   }
 }

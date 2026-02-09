@@ -16,6 +16,9 @@ export class ClientResponseDto {
   @ApiProperty({ example: 'Cliente VIP do setor financeiro', nullable: true })
   notes?: string;
 
+  @ApiProperty({ example: 3 })
+  accessCount!: number;
+
   @ApiProperty({ example: '2026-02-09T16:00:00.000Z' })
   createdAt!: string;
 

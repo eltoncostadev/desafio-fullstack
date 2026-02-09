@@ -1,64 +1,79 @@
 ﻿import { Injectable, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { ClientResponseDto } from './dto/client-response.dto';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { ClientEntity } from './entities/client.entity';
 
 @Injectable()
 export class ClientsService {
-  private readonly clients: ClientResponseDto[] = [
-    {
-      id: 'cl_01hvj8mock001',
-      name: 'Cliente Demonstração',
-      email: 'cliente.demo@example.com',
-      phone: '+55 11 99999-0000',
-      notes: 'Registro apenas para documentação.',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+  constructor(
+    @InjectRepository(ClientEntity)
+    private readonly clientsRepository: Repository<ClientEntity>,
+  ) {}
 
-  findAll(): ClientResponseDto[] {
-    return this.clients;
+  async findAll(): Promise<ClientResponseDto[]> {
+    const clients = await this.clientsRepository.find({
+      where: { deletedAt: IsNull() },
+      order: { createdAt: 'DESC' },
+    });
+    return clients.map((client) => this.toResponse(client));
   }
 
-  findOne(id: string): ClientResponseDto {
-    const client = this.clients.find((item) => item.id === id);
+  async findOne(id: string): Promise<ClientResponseDto> {
+    const client = await this.clientsRepository.findOne({
+      where: { id, deletedAt: IsNull() },
+    });
+
     if (!client) {
       throw new NotFoundException(`Client ${id} not found`);
     }
-    return client;
+
+    client.accessCount += 1;
+    const updated = await this.clientsRepository.save(client);
+    return this.toResponse(updated);
   }
 
-  create(dto: CreateClientDto): ClientResponseDto {
-    const now = new Date().toISOString();
-    const newClient: ClientResponseDto = {
-      id: randomUUID(),
-      createdAt: now,
-      updatedAt: now,
+  async create(dto: CreateClientDto): Promise<ClientResponseDto> {
+    const entity = this.clientsRepository.create({
       ...dto,
-    };
-    this.clients.push(newClient);
-    return newClient;
+      accessCount: 0,
+    });
+    const saved = await this.clientsRepository.save(entity);
+    return this.toResponse(saved);
   }
 
-  update(id: string, dto: UpdateClientDto): ClientResponseDto {
-    const existing = this.findOne(id);
-    const updated: ClientResponseDto = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date().toISOString(),
-    };
-    const index = this.clients.findIndex((item) => item.id === id);
-    this.clients[index] = updated;
-    return updated;
-  }
-
-  remove(id: string): void {
-    const index = this.clients.findIndex((item) => item.id === id);
-    if (index === -1) {
+  async update(id: string, dto: UpdateClientDto): Promise<ClientResponseDto> {
+    const client = await this.clientsRepository.findOne({
+      where: { id, deletedAt: IsNull() },
+    });
+    if (!client) {
       throw new NotFoundException(`Client ${id} not found`);
     }
-    this.clients.splice(index, 1);
+
+    const merged = this.clientsRepository.merge(client, dto);
+    const saved = await this.clientsRepository.save(merged);
+    return this.toResponse(saved);
+  }
+
+  async remove(id: string): Promise<void> {
+    const result = await this.clientsRepository.softDelete(id);
+    if (!result.affected) {
+      throw new NotFoundException(`Client ${id} not found`);
+    }
+  }
+
+  private toResponse(entity: ClientEntity): ClientResponseDto {
+    return {
+      id: entity.id,
+      name: entity.name,
+      email: entity.email,
+      phone: entity.phone ?? undefined,
+      notes: entity.notes ?? undefined,
+      accessCount: entity.accessCount,
+      createdAt: entity.createdAt.toISOString(),
+      updatedAt: entity.updatedAt.toISOString(),
+    };
   }
 }
