@@ -1,4 +1,4 @@
-﻿import { getAuthToken } from '../auth/token-store';
+import { getAuthToken } from '../auth/token-store';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
 

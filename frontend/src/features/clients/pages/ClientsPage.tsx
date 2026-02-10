@@ -1,4 +1,4 @@
-﻿export function ClientsPage() {
+export function ClientsPage() {
   return (
     <section>
       <h2>Clientes</h2>

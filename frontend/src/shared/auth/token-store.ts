@@ -1,4 +1,4 @@
-﻿let authToken: string | null = null;
+let authToken: string | null = null;
 
 export const getAuthToken = (): string | null => authToken;
 

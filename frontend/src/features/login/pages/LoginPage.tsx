@@ -1,8 +1,108 @@
-﻿export function LoginPage() {
+import { ChangeEvent, FormEvent, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../shared/auth/auth-context';
+
+type FormState = {
+  email: string;
+  password: string;
+};
+
+type FormErrors = Partial<FormState> & {
+  server?: string;
+};
+
+const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [form, setForm] = useState<FormState>({ email: '', password: '' });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validate = useCallback((): FormErrors => {
+    const validationErrors: FormErrors = {};
+
+    if (!form.email.trim()) {
+      validationErrors.email = 'Informe o e-mail.';
+    } else if (!emailPattern.test(form.email)) {
+      validationErrors.email = 'E-mail inválido.';
+    }
+
+    if (!form.password.trim()) {
+      validationErrors.password = 'Informe a senha.';
+    }
+
+    return validationErrors;
+  }, [form.email, form.password]);
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined, server: undefined }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validationErrors = validate();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      await login({ username: form.email, password: form.password });
+      navigate('/dashboard');
+    } catch (error) {
+      setErrors({ server: 'Não foi possível autenticar. Verifique as credenciais.' });
+      console.error('Login error', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <section>
-      <h2>Login</h2>
-      <p>Área destinada ao fluxo de autenticação. Em breve conterá formulário e integrações.</p>
+      <h2>Acessar o painel</h2>
+      <p>Use as credenciais fornecidas pelo administrador para entrar.</p>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '24rem' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          E-mail
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="nome@empresa.com"
+            required
+          />
+          {errors.email && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{errors.email}</span>}
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          Senha
+          <input
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            required
+          />
+          {errors.password && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{errors.password}</span>}
+        </label>
+
+        {errors.server && <span style={{ color: '#f87171' }}>{errors.server}</span>}
+
+        <button type="submit" disabled={isSubmitting} style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
+          {isSubmitting ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
     </section>
   );
 }

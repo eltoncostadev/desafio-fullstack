@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { httpClient } from '../api/http-client';
 
 export type ApiHook = {
