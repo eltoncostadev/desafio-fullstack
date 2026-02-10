@@ -3,6 +3,7 @@ import {
   FormEvent,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import { useApi } from '../../../shared/hooks/useApi';
@@ -17,6 +18,49 @@ type Client = {
   accessCount: number;
   createdAt: string;
   updatedAt: string;
+};
+
+type PaginatedClientsResponse = {
+  items: Client[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+const CLIENTS_PER_PAGE = 16;
+const DEFAULT_PAGE = 1;
+const PAGE_SIZE_OPTIONS = [8, 16, 32];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getDigits = (value: string): string => value.replace(/\D/g, '');
+
+const formatBrazilianPhone = (value: string): string => {
+  const digits = getDigits(value).slice(0, 11);
+  const length = digits.length;
+
+  if (length === 0) {
+    return '';
+  }
+
+  if (length < 3) {
+    return `(${digits}`;
+  }
+
+  if (length < 7) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+
+  if (length < 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+};
+
+const isValidBrazilianPhone = (value: string): boolean => {
+  const digits = getDigits(value);
+  return digits.length === 10 || digits.length === 11;
 };
 
 type FormState = {
@@ -64,6 +108,11 @@ export function ClientsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [page, setPage] = useState(DEFAULT_PAGE);
+  const [limit, setLimit] = useState(CLIENTS_PER_PAGE);
 
   useEffect(() => {
     let active = true;
@@ -71,11 +120,20 @@ export function ClientsPage() {
       setIsLoading(true);
       setListError(null);
       try {
-        const data = await api.get<Client[]>('/clients');
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        const data = await api.get<PaginatedClientsResponse>(`/clients?${params.toString()}`);
         if (!active) {
           return;
         }
-        setClients(data);
+        setClients(data.items);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+        if (data.totalPages > 0 && page > data.totalPages) {
+          setPage(data.totalPages);
+        }
       } catch (error) {
         if (active) {
           setListError('Não foi possível carregar os clientes.');
@@ -92,12 +150,25 @@ export function ClientsPage() {
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, limit, page, refreshToken]);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
-    setFormErrors((prev) => ({ ...prev, [name]: undefined, server: undefined }));
+    const nextValue = name === 'phone' ? formatBrazilianPhone(value) : value;
+    setFormState((prev) => ({ ...prev, [name]: nextValue }));
+    setFormErrors((prev) => {
+      const nextErrors = { ...prev, [name]: undefined, server: undefined };
+      if (name === 'email' && value.trim() && !EMAIL_REGEX.test(value.trim())) {
+        nextErrors.email = 'Informe um e-mail válido.';
+      }
+      if (name === 'phone') {
+        const digits = getDigits(value);
+        if (digits.length > 0 && !isValidBrazilianPhone(value)) {
+          nextErrors.phone = 'Informe um telefone válido.';
+        }
+      }
+      return nextErrors;
+    });
   };
 
   const openCreatePanel = useCallback(() => {
@@ -121,11 +192,14 @@ export function ClientsPage() {
     }
     if (!formState.email.trim()) {
       errors.email = 'Informe o e-mail.';
-    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formState.email)) {
-      errors.email = 'E-mail inválido.';
+    } else if (!EMAIL_REGEX.test(formState.email.trim())) {
+      errors.email = 'Informe um e-mail válido.';
+    }
+    if (formState.phone.trim() && !isValidBrazilianPhone(formState.phone)) {
+      errors.phone = 'Informe um telefone válido.';
     }
     return errors;
-  }, [formState.email, formState.name]);
+  }, [formState.email, formState.name, formState.phone]);
 
   const upsertClient = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -159,6 +233,7 @@ export function ClientsPage() {
         });
 
         closePanel();
+        setRefreshToken((token) => token + 1);
       } catch (error) {
         setFormErrors({ server: 'Não foi possível salvar o cliente.' });
         console.error('Client save error', error);
@@ -193,19 +268,82 @@ export function ClientsPage() {
       if (editingId === client.id) {
         closePanel();
       }
+      setRefreshToken((token) => token + 1);
     } catch (error) {
       setListError('Não foi possível remover o cliente.');
       console.error('Client delete error', error);
     }
   };
-  const headerCountLabel = isLoading ? 'Carregando clientes...' : `${clients.length} clientes encontrados`;
+  const headerCountLabel = isLoading ? 'Carregando clientes...' : `${total} clientes encontrados:`;
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) {
+      return [];
+    }
+
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const visiblePages = new Set<number>([
+      1,
+      totalPages,
+      page - 1,
+      page,
+      page + 1,
+    ]);
+
+    const sanitized = Array.from(visiblePages)
+      .filter((value) => value >= 1 && value <= totalPages)
+      .sort((a, b) => a - b);
+
+    const items: Array<number | 'ellipsis'> = [];
+    let last = 0;
+    sanitized.forEach((value) => {
+      if (value - last > 1) {
+        if (value - last === 2) {
+          items.push(last + 1);
+        } else {
+          items.push('ellipsis');
+        }
+      }
+      items.push(value);
+      last = value;
+    });
+
+    return items;
+  }, [page, totalPages]);
+
+  const handleLimitChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextLimit = Number(event.target.value) || CLIENTS_PER_PAGE;
+    setLimit(nextLimit);
+    setPage(1);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (nextPage === page || nextPage < 1 || nextPage > totalPages) {
+      return;
+    }
+    setPage(nextPage);
+  };
 
   return (
     <section className={styles.page}>
       <div className={styles.headline}>
         <div>
-          <h2>Clientes</h2>
-          <p className={styles.countLabel}>{headerCountLabel}</p>
+          <p className={styles.countLabel}>
+            {headerCountLabel}
+          </p>
+        </div>
+        <div className={styles.pageSizeControl}>
+          <span>Clientes por página:</span>
+          <select value={limit} onChange={handleLimitChange}>
+            {PAGE_SIZE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -252,6 +390,30 @@ export function ClientsPage() {
         Criar cliente
       </button>
 
+      {paginationItems.length > 0 && (
+        <div className={styles.pagination}>
+          {paginationItems.map((item, index) => {
+            if (item === 'ellipsis') {
+              return (
+                <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
+                  ...
+                </span>
+              );
+            }
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`${styles.paginationButton} ${item === page ? styles.paginationButtonActive : ''}`.trim()}
+                onClick={() => handlePageChange(item)}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {isPanelOpen && (
         <div className={styles.panelOverlay}>
           <div className={styles.panel}>
@@ -276,7 +438,15 @@ export function ClientsPage() {
 
               <label>
                 Telefone
-                <input name="phone" value={formState.phone} onChange={handleInputChange} placeholder="(11) 99999-0000" />
+                <input
+                  name="phone"
+                  value={formState.phone}
+                  onChange={handleInputChange}
+                  placeholder="(11) 99999-0000"
+                  inputMode="numeric"
+                  maxLength={15}
+                />
+                {formErrors.phone && <span style={{ color: '#f87171', fontSize: '0.85rem' }}>{formErrors.phone}</span>}
               </label>
 
               <label>

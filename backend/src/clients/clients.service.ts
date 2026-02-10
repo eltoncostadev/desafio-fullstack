@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { ClientResponseDto } from './dto/client-response.dto';
 import { CreateClientDto } from './dto/create-client.dto';
+import { ListClientsQueryDto } from './dto/list-clients-query.dto';
+import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientEntity } from './entities/client.entity';
 
@@ -13,12 +15,27 @@ export class ClientsService {
     private readonly clientsRepository: Repository<ClientEntity>,
   ) {}
 
-  async findAll(): Promise<ClientResponseDto[]> {
-    const clients = await this.clientsRepository.find({
+  async findAll(query: ListClientsQueryDto): Promise<PaginatedClientsResponseDto> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 16;
+    const skip = (page - 1) * limit;
+    const [clients, total] = await this.clientsRepository.findAndCount({
       where: { deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
-    return clients.map((client) => this.toResponse(client));
+
+    const items = clients.map((client) => this.toResponse(client));
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async findOne(id: string): Promise<ClientResponseDto> {

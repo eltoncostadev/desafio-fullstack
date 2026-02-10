@@ -9,11 +9,22 @@ type ClientSummary = {
   createdAt: string;
 };
 
+type PaginatedClientsResponse = {
+  items: ClientSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+const DASHBOARD_CLIENT_LIMIT = 100;
+
 export function DashboardPage() {
   const api = useApi();
   const [clients, setClients] = useState<ClientSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalClients, setTotalClients] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -21,9 +32,14 @@ export function DashboardPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await api.get<ClientSummary[]>('/clients');
+        const params = new URLSearchParams({
+          page: '1',
+          limit: String(DASHBOARD_CLIENT_LIMIT),
+        });
+        const response = await api.get<PaginatedClientsResponse>(`/clients?${params.toString()}`);
         if (active) {
-          setClients(response);
+          setClients(response.items);
+          setTotalClients(response.total);
         }
       } catch (err) {
         if (active) {
@@ -42,8 +58,6 @@ export function DashboardPage() {
       active = false;
     };
   }, [api]);
-
-  const totalClients = clients.length;
 
   const recentClients = useMemo(() => {
     return [...clients]

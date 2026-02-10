@@ -6,6 +6,7 @@
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ClientsService } from './clients.service';
 import { ClientResponseDto } from './dto/client-response.dto';
 import { CreateClientDto } from './dto/create-client.dto';
+import { ListClientsQueryDto } from './dto/list-clients-query.dto';
+import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 
 @ApiTags('Clients')
@@ -31,9 +34,9 @@ export class ClientsController {
 
   @Get()
   @ApiOperation({ summary: 'Lista todos os clientes' })
-  @ApiOkResponse({ type: ClientResponseDto, isArray: true })
-  findAll(): Promise<ClientResponseDto[]> {
-    return this.clientsService.findAll();
+  @ApiOkResponse({ type: PaginatedClientsResponseDto })
+  findAll(@Query() query: ListClientsQueryDto): Promise<PaginatedClientsResponseDto> {
+    return this.clientsService.findAll(query);
   }
 
   @Get(':id')

@@ -16,13 +16,28 @@
   box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
 }
 
-.headline h2 {
+.countLabel {
   margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 600;
 }
 
-.countLabel {
-  font-size: 0.95rem;
-  color: #6b7280;
+.pageSizeControl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #78716c;
+}
+
+.pageSizeControl select {
+  border-radius: 0.75rem;
+  border: 1px solid #d6d3d1;
+  padding: 0.35rem 0.75rem;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .grid {
@@ -209,4 +224,41 @@
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   align-self: flex-start;
+}
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.paginationButton {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.paginationButton:hover {
+  border-color: #f97316;
+  color: #f97316;
+}
+
+.paginationButtonActive {
+  background: #f97316;
+  color: #fff;
+  border-color: #f97316;
+}
+
+.paginationEllipsis {
+  padding: 0 0.5rem;
+  color: #a1a1aa;
+  font-weight: 600;
 }
