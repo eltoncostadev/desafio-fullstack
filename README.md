@@ -26,6 +26,12 @@ O diretório `backend/` contém um `docker-compose.yml` simples com a API NestJS
 
 O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados. A documentação Swagger fica disponível em `http://localhost:3000/docs`, com autenticação Bearer habilitada.
 
+### Observabilidade
+
+- Logs estruturados em JSON: todas as requisições HTTP e eventos de inicialização são emitidos em stdout já no formato JSON.
+- `GET /healthz`: retorna um objeto simples com `status` e `timestamp` para uso em probes.
+- `GET /metrics`: expõe métricas no formato Prometheus (com prefixo `client_mgmt_`), prontas para scraping.
+
 ### Autenticação
 
 - Use as variáveis `AUTH_EMAIL` e `AUTH_PASSWORD` (definidas no `backend/.env`) para validar o login em `POST /auth/login`.

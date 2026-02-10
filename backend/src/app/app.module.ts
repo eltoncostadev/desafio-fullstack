@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { ClientsModule } from '../clients/clients.module';
+import { LoggerModule } from '../logger/logger.module';
+import { ObservabilityModule } from '../observability/observability.module';
 import { getDatabaseConfig } from '../database/database.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,6 +13,8 @@ import { AppService } from './app.service';
     TypeOrmModule.forRootAsync({
       useFactory: getDatabaseConfig,
     }),
+    LoggerModule,
+    ObservabilityModule,
     AuthModule,
     ClientsModule,
   ],
