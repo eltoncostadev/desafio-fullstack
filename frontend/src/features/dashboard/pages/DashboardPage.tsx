@@ -61,10 +61,6 @@ export function DashboardPage() {
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h2>Dashboard</h2>
-        <p>Métricas resumidas dos clientes e atividades recentes.</p>
-      </header>
 
       {error && (
         <div style={{ padding: '1rem', borderRadius: '0.5rem', background: '#fee2e2', color: '#991b1b' }}>
@@ -73,12 +69,12 @@ export function DashboardPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        <article style={{ background: '#111827', padding: '1.25rem', borderRadius: '1rem' }}>
+        <article style={{ background: '#e6e8ee', padding: '1.25rem', borderRadius: '1rem' }}>
           <p style={{ margin: 0, fontSize: '0.875rem', color: '#94a3b8' }}>Total de clientes</p>
           <strong style={{ fontSize: '2.5rem' }}>{isLoading ? '...' : totalClients}</strong>
         </article>
 
-        <article style={{ background: '#111827', padding: '1.25rem', borderRadius: '1rem' }}>
+        <article style={{ background: '#e6e8ee', padding: '1.25rem', borderRadius: '1rem' }}>
           <p style={{ margin: 0, fontSize: '0.875rem', color: '#94a3b8' }}>Novos na última semana</p>
           <strong style={{ fontSize: '2.5rem' }}>
             {isLoading
@@ -100,7 +96,7 @@ export function DashboardPage() {
           alignItems: 'stretch',
         }}
       >
-        <article style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '1rem' }}>
+        <article style={{ background: '#e6e8ee', padding: '1.5rem', borderRadius: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>Clientes recentes</h3>
           {isLoading && <p>Carregando...</p>}
           {!isLoading && recentClients.length === 0 && <p>Nenhum cliente cadastrado ainda.</p>}
@@ -117,7 +113,7 @@ export function DashboardPage() {
           </ul>
         </article>
 
-        <article style={{ background: '#111827', padding: '1.5rem', borderRadius: '1rem' }}>
+        <article style={{ background: '#e6e8ee', padding: '1.5rem', borderRadius: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>Acessos ao painel</h3>
           {isLoading && <p>Carregando...</p>}
           {!isLoading && accessLeaders.length === 0 && <p>Aguardando atividade dos clientes.</p>}

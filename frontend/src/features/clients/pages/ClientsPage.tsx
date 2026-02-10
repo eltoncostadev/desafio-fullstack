@@ -3,10 +3,10 @@ import {
   FormEvent,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 import { useApi } from '../../../shared/hooks/useApi';
+import styles from './ClientsPage.module.css';
 
 type Client = {
   id: string;
@@ -37,18 +37,33 @@ const emptyFormState: FormState = {
   notes: '',
 };
 
+const PencilIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+  </svg>
+);
+
 export function ClientsPage() {
   const api = useApi();
   const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [detailsLoading, setDetailsLoading] = useState(false);
   const [formState, setFormState] = useState<FormState>(emptyFormState);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -61,7 +76,6 @@ export function ClientsPage() {
           return;
         }
         setClients(data);
-        setSelectedClient((current) => current ?? data[0] ?? null);
       } catch (error) {
         if (active) {
           setListError('Não foi possível carregar os clientes.');
@@ -80,18 +94,25 @@ export function ClientsPage() {
     };
   }, [api]);
 
-  const resetForm = useCallback(() => {
-    setFormState(emptyFormState);
-    setFormErrors({});
-    setIsSubmitting(false);
-    setEditingId(null);
-  }, []);
-
   const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setFormState((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: undefined, server: undefined }));
   };
+
+  const openCreatePanel = useCallback(() => {
+    setEditingId(null);
+    setFormState(emptyFormState);
+    setFormErrors({});
+    setIsPanelOpen(true);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setEditingId(null);
+    setFormState(emptyFormState);
+    setFormErrors({});
+    setIsPanelOpen(false);
+  }, []);
 
   const validateForm = useCallback((): FormErrors => {
     const errors: FormErrors = {};
@@ -105,24 +126,6 @@ export function ClientsPage() {
     }
     return errors;
   }, [formState.email, formState.name]);
-
-  const selectClient = useCallback(
-    async (client: Client) => {
-      setDetailsLoading(true);
-      setDetailsError(null);
-      try {
-        const freshClient = await api.get<Client>(`/clients/${client.id}`);
-        setSelectedClient(freshClient);
-        setClients((prev) => prev.map((item) => (item.id === freshClient.id ? freshClient : item)));
-      } catch (error) {
-        setDetailsError('Não foi possível carregar os detalhes.');
-        console.error('Client details error', error);
-      } finally {
-        setDetailsLoading(false);
-      }
-    },
-    [api],
-  );
 
   const upsertClient = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -155,8 +158,7 @@ export function ClientsPage() {
           return [savedClient, ...prev];
         });
 
-        setSelectedClient(savedClient);
-        resetForm();
+        closePanel();
       } catch (error) {
         setFormErrors({ server: 'Não foi possível salvar o cliente.' });
         console.error('Client save error', error);
@@ -164,7 +166,7 @@ export function ClientsPage() {
         setIsSubmitting(false);
       }
     },
-    [api, editingId, formState.email, formState.name, formState.notes, formState.phone, resetForm, validateForm],
+    [api, closePanel, editingId, formState.email, formState.name, formState.notes, formState.phone, validateForm],
   );
 
   const handleEdit = (client: Client) => {
@@ -176,6 +178,7 @@ export function ClientsPage() {
       notes: client.notes ?? '',
     });
     setFormErrors({});
+    setIsPanelOpen(true);
   };
 
   const handleDelete = async (client: Client) => {
@@ -187,153 +190,120 @@ export function ClientsPage() {
     try {
       await api.remove<void>(`/clients/${client.id}`);
       setClients((prev) => prev.filter((item) => item.id !== client.id));
-      setSelectedClient((prev) => (prev?.id === client.id ? null : prev));
       if (editingId === client.id) {
-        resetForm();
+        closePanel();
       }
     } catch (error) {
       setListError('Não foi possível remover o cliente.');
       console.error('Client delete error', error);
     }
   };
-
-  const formTitle = useMemo(() => (editingId ? 'Editar cliente' : 'Novo cliente'), [editingId]);
+  const headerCountLabel = isLoading ? 'Carregando clientes...' : `${clients.length} clientes encontrados`;
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h2>Clientes</h2>
-        <p>Gerencie cadastros, consulte detalhes e acompanhe a quantidade de acessos.</p>
+    <section className={styles.page}>
+      <div className={styles.headline}>
+        <div>
+          <h2>Clientes</h2>
+          <p className={styles.countLabel}>{headerCountLabel}</p>
+        </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '2rem',
-        }}
-      >
-        <article style={{ background: '#111827', padding: '1.5rem', borderRadius: '1rem' }}>
-          <h3 style={{ marginTop: 0 }}>{formTitle}</h3>
-          <form onSubmit={upsertClient} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              Nome
-              <input name="name" value={formState.name} onChange={handleInputChange} placeholder="Cliente XPTO" />
-              {formErrors.name && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{formErrors.name}</span>}
-            </label>
+      {listError && <div className={styles.errorBanner}>{listError}</div>}
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              E-mail
-              <input
-                type="email"
-                name="email"
-                value={formState.email}
-                onChange={handleInputChange}
-                placeholder="cliente@empresa.com"
-              />
-              {formErrors.email && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{formErrors.email}</span>}
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              Telefone
-              <input name="phone" value={formState.phone} onChange={handleInputChange} placeholder="(11) 99999-0000" />
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              Observações
-              <textarea
-                name="notes"
-                value={formState.notes}
-                onChange={handleInputChange}
-                rows={3}
-                placeholder="Informações adicionais sobre o cliente"
-              />
-            </label>
-
-            {formErrors.server && <span style={{ color: '#f87171' }}>{formErrors.server}</span>}
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button type="submit" disabled={isSubmitting} style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
-                {isSubmitting ? 'Salvando...' : 'Salvar' }
-              </button>
-              {editingId && (
+      {isLoading ? (
+        <div className={styles.emptyState}>Carregando clientes...</div>
+      ) : clients.length === 0 ? (
+        <div className={styles.emptyState}>
+          Nenhum cliente cadastrado ainda. Clique em "Criar cliente" para adicionar o primeiro.
+        </div>
+      ) : (
+        <div className={styles.grid}>
+          {clients.map((client) => (
+            <div key={client.id} className={styles.card}>
+              <h3>{client.name}</h3>
+              <p>{client.email}</p>
+              <p>{client.phone || 'Telefone não informado'}</p>
+              <span className={styles.accessTag}>Acessos: {client.accessCount}</span>
+              <div className={styles.cardActions}>
                 <button
                   type="button"
-                  onClick={resetForm}
-                  style={{ padding: '0.75rem 1rem', background: 'transparent', border: '1px solid #f87171', color: '#f87171' }}
+                  className={styles.iconButton}
+                  onClick={() => handleEdit(client)}
+                  aria-label={`Editar ${client.name}`}
                 >
+                  <PencilIcon />
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.iconButtonDanger}`}
+                  onClick={() => handleDelete(client)}
+                  aria-label={`Remover ${client.name}`}
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" className={styles.createButton} onClick={openCreatePanel}>
+        Criar cliente
+      </button>
+
+      {isPanelOpen && (
+        <div className={styles.panelOverlay}>
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <h3>{editingId ? 'Editar cliente' : 'Novo cliente'}</h3>
+              <button type="button" className={styles.closeButton} onClick={closePanel} aria-label="Fechar formulário">
+                &times;
+              </button>
+            </div>
+            <form className={styles.panelForm} onSubmit={upsertClient}>
+              <label>
+                Nome
+                <input name="name" value={formState.name} onChange={handleInputChange} placeholder="Cliente XPTO" />
+                {formErrors.name && <span style={{ color: '#f87171', fontSize: '0.85rem' }}>{formErrors.name}</span>}
+              </label>
+
+              <label>
+                E-mail
+                <input type="email" name="email" value={formState.email} onChange={handleInputChange} placeholder="cliente@empresa.com" />
+                {formErrors.email && <span style={{ color: '#f87171', fontSize: '0.85rem' }}>{formErrors.email}</span>}
+              </label>
+
+              <label>
+                Telefone
+                <input name="phone" value={formState.phone} onChange={handleInputChange} placeholder="(11) 99999-0000" />
+              </label>
+
+              <label>
+                Observações
+                <textarea
+                  name="notes"
+                  value={formState.notes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  placeholder="Informações adicionais sobre o cliente"
+                />
+              </label>
+
+              {formErrors.server && <span style={{ color: '#f87171' }}>{formErrors.server}</span>}
+
+              <div className={styles.panelActions}>
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button type="button" onClick={closePanel}>
                   Cancelar
                 </button>
-              )}
-            </div>
-          </form>
-        </article>
-
-        <article style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '1rem', minHeight: '20rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ marginTop: 0 }}>Lista</h3>
-            {isLoading && <span>Carregando...</span>}
+              </div>
+            </form>
           </div>
-          {listError && <p style={{ color: '#f87171' }}>{listError}</p>}
-          {!isLoading && clients.length === 0 ? (
-            <p>Nenhum cliente cadastrado ainda.</p>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Nome</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>E-mail</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Acessos</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((client) => (
-                    <tr key={client.id} style={{ borderTop: '1px solid rgba(248, 250, 252, 0.1)' }}>
-                      <td style={{ padding: '0.5rem' }}>{client.name}</td>
-                      <td style={{ padding: '0.5rem' }}>{client.email}</td>
-                      <td style={{ padding: '0.5rem' }}>{client.accessCount}</td>
-                      <td style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button type="button" onClick={() => selectClient(client)} style={{ padding: '0.25rem 0.5rem' }}>
-                          Ver detalhes
-                        </button>
-                        <button type="button" onClick={() => handleEdit(client)} style={{ padding: '0.25rem 0.5rem' }}>
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(client)}
-                          style={{ padding: '0.25rem 0.5rem', background: '#ef4444', border: 'none', color: '#fff' }}
-                        >
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </article>
-
-        <article style={{ background: '#111827', padding: '1.5rem', borderRadius: '1rem' }}>
-          <h3 style={{ marginTop: 0 }}>Detalhes</h3>
-          {detailsLoading && <p>Atualizando informações...</p>}
-          {detailsError && <p style={{ color: '#f87171' }}>{detailsError}</p>}
-          {!selectedClient && !detailsLoading && <p>Selecione um cliente para visualizar os dados.</p>}
-          {selectedClient && !detailsLoading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <strong>{selectedClient.name}</strong>
-              <span>E-mail: {selectedClient.email}</span>
-              {selectedClient.phone && <span>Telefone: {selectedClient.phone}</span>}
-              <span>Acessos ao painel: {selectedClient.accessCount}</span>
-              {selectedClient.notes && <span>Observações: {selectedClient.notes}</span>}
-              <small>Atualizado em {new Date(selectedClient.updatedAt).toLocaleString()}</small>
-            </div>
-          )}
-        </article>
-      </div>
+        </div>
+      )}
     </section>
   );
 }
