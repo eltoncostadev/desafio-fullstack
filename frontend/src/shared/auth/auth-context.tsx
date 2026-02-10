@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import { setAuthToken } from './token-store';
 
 type LoginPayload = {
-  username: string;
+  email: string;
   password: string;
 };
 
@@ -26,9 +26,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = useCallback(
     async (payload: LoginPayload) => {
-      const response = await api.post<{ access_token: string }>('/auth/login', payload);
-      setToken(response.access_token);
-      setAuthToken(response.access_token);
+      const response = await api.post<{ accessToken: string }>('/auth/login', payload);
+      setToken(response.accessToken);
+      setAuthToken(response.accessToken);
     },
     [api],
   );

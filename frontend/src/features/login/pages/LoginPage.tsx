@@ -1,5 +1,5 @@
-import { ChangeEvent, FormEvent, useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Location, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/auth/auth-context';
 
 type FormState = {
@@ -13,9 +13,14 @@ type FormErrors = Partial<FormState> & {
 
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+type LocationState = {
+  from?: Location;
+};
+
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAuth();
   const [form, setForm] = useState<FormState>({ email: '', password: '' });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,6 +47,17 @@ export function LoginPage() {
     setErrors((prev) => ({ ...prev, [name]: undefined, server: undefined }));
   };
 
+  const redirectPath = useMemo(
+    () => (location.state as LocationState | null)?.from?.pathname ?? '/dashboard',
+    [location.state],
+  );
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, navigate, redirectPath]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const validationErrors = validate();
@@ -55,8 +71,7 @@ export function LoginPage() {
     setErrors({});
 
     try {
-      await login({ username: form.email, password: form.password });
-      navigate('/dashboard');
+      await login({ email: form.email, password: form.password });
     } catch (error) {
       setErrors({ server: 'Não foi possível autenticar. Verifique as credenciais.' });
       console.error('Login error', error);

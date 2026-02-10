@@ -15,6 +15,15 @@ async function bootstrap() {
   const jsonLogger = app.get(JsonLogger);
   app.useLogger(jsonLogger);
   app.useGlobalInterceptors(app.get(HttpLoggingInterceptor));
+  const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix, {
     exclude: [
@@ -54,6 +63,7 @@ async function bootstrap() {
     docsUrl: `http://localhost:${port}/docs`,
     healthUrl: `http://localhost:${port}/healthz`,
     metricsUrl: `http://localhost:${port}/metrics`,
+    corsOrigins: allowedOrigins,
   });
 }
 
