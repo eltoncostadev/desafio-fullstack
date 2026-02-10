@@ -4,6 +4,8 @@ import { httpClient } from '../api/http-client';
 export type ApiHook = {
   get: <T>(path: string, init?: RequestInit) => Promise<T>;
   post: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
+  put: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
+  remove: <T>(path: string, init?: RequestInit) => Promise<T>;
 };
 
 export function useApi(): ApiHook {
@@ -16,6 +18,13 @@ export function useApi(): ApiHook {
           method: 'POST',
           body: body ? JSON.stringify(body) : undefined,
         }),
+      put: (path, body, init) =>
+        httpClient(path, {
+          ...init,
+          method: 'PUT',
+          body: body ? JSON.stringify(body) : undefined,
+        }),
+      remove: (path, init) => httpClient(path, { ...init, method: 'DELETE' }),
     }),
     [],
   );

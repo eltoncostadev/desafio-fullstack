@@ -25,5 +25,18 @@ export async function httpClient<T>(path: string, options?: RequestInit): Promis
     throw new Error(`Request failed with status ${response.status}`);
   }
 
-  return (await response.json()) as T;
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
+
+  const rawPayload = await response.text();
+  if (!rawPayload) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(rawPayload) as T;
+  } catch {
+    throw new Error('Failed to parse server response.');
+  }
 }
