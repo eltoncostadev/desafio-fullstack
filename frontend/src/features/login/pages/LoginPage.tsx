@@ -1,6 +1,14 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Location, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/auth/auth-context';
+import styles from './LoginPage.module.css';
 
 type FormState = {
   email: string;
@@ -45,6 +53,19 @@ export function LoginPage() {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined, server: undefined }));
+    event.target.setCustomValidity('');
+  };
+
+  const translateValidity = (input: HTMLInputElement): void => {
+    if (input.validity.valueMissing) {
+      input.setCustomValidity('Este campo é obrigatório.');
+      return;
+    }
+    if (input.type === 'email' && input.validity.typeMismatch) {
+      input.setCustomValidity('Informe um e-mail válido.');
+      return;
+    }
+    input.setCustomValidity('');
   };
 
   const redirectPath = useMemo(
@@ -81,43 +102,117 @@ export function LoginPage() {
   };
 
   return (
-    <section>
-      <h2>Acessar o painel</h2>
-      <p>Use as credenciais fornecidas pelo administrador para entrar.</p>
+    <section
+      style={{
+        minHeight: '100vh',
+        background: '#f5f5f4',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '480px',
+          background: '#fff',
+          color: '#1a1a1a',
+          borderRadius: '1.5rem',
+          padding: '3rem',
+          boxShadow: '0 35px 80px rgba(10, 10, 10, 0.2)',
+        }}
+      >
+        <div style={{ marginBottom: '2.5rem' }}>
+          <h2 style={{ margin: 0, fontSize: '2rem', color: '#1c1917' }}>Olá, seja bem-vindo!</h2>
+        </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '24rem' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          E-mail
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="nome@empresa.com"
-            required
-          />
-          {errors.email && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{errors.email}</span>}
-        </label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <label
+            className={styles.inputLabel}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.35rem',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+            }}
+          >
+            E-mail
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="nome@empresa.com"
+              required
+              className={styles.inputField}
+              onInvalid={(event) => translateValidity(event.currentTarget)}
+              onInput={(event) => translateValidity(event.currentTarget)}
+            />
+            {errors.email && <span style={{ color: '#dc2626', fontSize: '0.85rem' }}>{errors.email}</span>}
+          </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          Senha
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="••••••••"
-            required
-          />
-          {errors.password && <span style={{ color: '#f87171', fontSize: '0.875rem' }}>{errors.password}</span>}
-        </label>
+          <label
+            className={styles.inputLabel}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.35rem',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+            }}
+          >
+            Senha
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              className={styles.inputField}
+              onInvalid={(event) => translateValidity(event.currentTarget)}
+              onInput={(event) => translateValidity(event.currentTarget)}
+            />
+            {errors.password && <span style={{ color: '#dc2626', fontSize: '0.85rem' }}>{errors.password}</span>}
+          </label>
 
-        {errors.server && <span style={{ color: '#f87171' }}>{errors.server}</span>}
+          {errors.server && (
+            <span style={{ color: '#dc2626', fontSize: '0.9rem' }}>{errors.server}</span>
+          )}
 
-        <button type="submit" disabled={isSubmitting} style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
-          {isSubmitting ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              border: 'none',
+              borderRadius: '999px',
+              padding: '1rem 1.25rem',
+              fontSize: '1rem',
+              fontWeight: 700,
+              letterSpacing: '0.03em',
+              background: '#f97316',
+              color: '#fff',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+              boxShadow: isSubmitting ? 'none' : '0 15px 30px rgba(249, 115, 22, 0.35)',
+            }}
+            onMouseEnter={(event) => {
+              if (!isSubmitting) {
+                event.currentTarget.style.transform = 'translateY(-2px)';
+                event.currentTarget.style.background = '#ea580c';
+              }
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.transform = 'none';
+              event.currentTarget.style.background = '#f97316';
+            }}
+          >
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

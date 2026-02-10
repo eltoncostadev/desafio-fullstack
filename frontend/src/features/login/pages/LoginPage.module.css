@@ -1,0 +1,28 @@
+﻿
+.metaText {
+  color: #a1a1aa;
+}
+
+.inputLabel {
+  color: #1c1917;
+}
+
+.inputField {
+  border: 1px solid #d6d3d1;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  color: #1c1917;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.inputField::placeholder {
+  color: #a8a29e;
+}
+
+.inputField:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
+}
