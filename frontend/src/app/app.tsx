@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import styles from './app.module.css';
 import { ClientsPage } from '../features/clients/pages/ClientsPage';
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { LoginPage } from '../features/login/pages/LoginPage';
+import { PrivateRoute } from '../shared/auth/PrivateRoute';
 
 export function App() {
   return (
@@ -13,9 +14,9 @@ export function App() {
           <h1>Console Administrativo</h1>
         </div>
         <nav className={styles.navLinks}>
-          <a href="/login">Login</a>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/clients">Clientes</a>
+          <Link to="/login">Login</Link>
+          <Link to="/dashboard">Dashboard</Link>
+          <Link to="/clients">Clientes</Link>
         </nav>
       </header>
 
@@ -23,8 +24,22 @@ export function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/clients" element={<ClientsPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/clients"
+            element={
+              <PrivateRoute>
+                <ClientsPage />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
