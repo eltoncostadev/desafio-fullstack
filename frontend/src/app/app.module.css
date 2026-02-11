@@ -189,6 +189,10 @@
 		padding: 1rem;
 	}
 
+	.brandLogo {
+		display: none;
+	}
+
 	.userLabel {
 		font-size: 0.9rem;
 	}
