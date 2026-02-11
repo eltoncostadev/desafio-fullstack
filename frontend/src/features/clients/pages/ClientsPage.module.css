@@ -100,6 +100,15 @@
   border-color: #ef4444;
 }
 
+.iconButtonInfo {
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.iconButtonInfo:hover {
+  border-color: #2563eb;
+}
+
 .createButton {
   margin-top: 0.5rem;
   align-self: center;
@@ -224,6 +233,94 @@
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   align-self: flex-start;
+}
+
+.detailsModal {
+  width: min(460px, 100%);
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+}
+
+.detailsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailsLabel {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.detailsHeader h3 {
+  margin: 0.2rem 0 0;
+  color: #0f172a;
+}
+
+.detailsList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.detailsError {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.detailsLoading {
+  text-align: center;
+  padding: 1.25rem;
+  border: 1px dashed #d6d3d1;
+  border-radius: 1rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.detailsList div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detailsList dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.detailsList dd {
+  margin: 0;
+  background: #f8fafc;
+  border-radius: 0.85rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.detailsAccessBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.25);
+  color: #a16207;
+  font-weight: 700;
 }
 
 .pagination {

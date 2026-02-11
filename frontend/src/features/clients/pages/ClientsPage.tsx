@@ -98,6 +98,25 @@ const TrashIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const formatDateTime = (value: string): string => {
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  } catch (error) {
+    console.error('Date format error', error);
+    return value;
+  }
+};
+
 export function ClientsPage() {
   const api = useApi();
   const [clients, setClients] = useState<Client[]>([]);
@@ -113,6 +132,9 @@ export function ClientsPage() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [page, setPage] = useState(DEFAULT_PAGE);
   const [limit, setLimit] = useState(CLIENTS_PER_PAGE);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -268,6 +290,11 @@ export function ClientsPage() {
       if (editingId === client.id) {
         closePanel();
       }
+      if (selectedClient?.id === client.id) {
+        setSelectedClient(null);
+        setIsDetailsLoading(false);
+        setDetailsError(null);
+      }
       setRefreshToken((token) => token + 1);
     } catch (error) {
       setListError('Não foi possível remover o cliente.');
@@ -327,6 +354,37 @@ export function ClientsPage() {
     setPage(nextPage);
   };
 
+  const handleShowDetails = useCallback(
+    async (client: Client) => {
+      setSelectedClient(client);
+      setIsDetailsLoading(true);
+      setDetailsError(null);
+      try {
+        const detailedClient = await api.get<Client>(`/clients/${client.id}`);
+        setSelectedClient((current) => {
+          if (!current || current.id !== client.id) {
+            return current;
+          }
+          return detailedClient;
+        });
+        setClients((prev) => prev.map((item) => (item.id === detailedClient.id ? detailedClient : item)));
+      } catch (error) {
+        setDetailsError('Não foi possível carregar os detalhes do cliente.');
+        console.error('Client details fetch error', error);
+      } finally {
+        setIsDetailsLoading(false);
+      }
+    },
+    [api],
+  );
+
+  const handleCloseDetails = useCallback(() => {
+    setSelectedClient(null);
+    setIsDetailsLoading(false);
+    setDetailsError(null);
+    setRefreshToken((token) => token + 1);
+  }, []);
+
   return (
     <section className={styles.page}>
       <div className={styles.headline}>
@@ -364,6 +422,14 @@ export function ClientsPage() {
               <p>{client.phone || 'Telefone não informado'}</p>
               <span className={styles.accessTag}>Acessos: {client.accessCount}</span>
               <div className={styles.cardActions}>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.iconButtonInfo}`.trim()}
+                  onClick={() => handleShowDetails(client)}
+                  aria-label={`Ver detalhes de ${client.name}`}
+                >
+                  <EyeIcon />
+                </button>
                 <button
                   type="button"
                   className={styles.iconButton}
@@ -411,6 +477,71 @@ export function ClientsPage() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {selectedClient && (
+        <div className={styles.panelOverlay}>
+          <div
+            className={styles.detailsModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`client-details-title-${selectedClient.id}`}
+          >
+            <div className={styles.detailsHeader}>
+              <div>
+                <p className={styles.detailsLabel}>Cliente</p>
+                <h3 id={`client-details-title-${selectedClient.id}`}>{selectedClient.name}</h3>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={handleCloseDetails}
+                aria-label="Fechar detalhes"
+              >
+                &times;
+              </button>
+            </div>
+
+            {detailsError && <div className={styles.detailsError}>{detailsError}</div>}
+
+            {isDetailsLoading ? (
+              <div className={styles.detailsLoading}>Carregando detalhes...</div>
+            ) : (
+              <dl className={styles.detailsList}>
+                <div>
+                  <dt>Nome</dt>
+                  <dd>{selectedClient.name}</dd>
+                </div>
+                <div>
+                  <dt>E-mail</dt>
+                  <dd>{selectedClient.email}</dd>
+                </div>
+                <div>
+                  <dt>Telefone</dt>
+                  <dd>{selectedClient.phone || 'Telefone não informado'}</dd>
+                </div>
+                <div>
+                  <dt>Observações</dt>
+                  <dd>{selectedClient.notes || 'Sem observações registradas.'}</dd>
+                </div>
+                <div>
+                  <dt>Contagem de acessos</dt>
+                  <dd>
+                    <span className={styles.detailsAccessBadge}>{selectedClient.accessCount}</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Criado em</dt>
+                  <dd>{formatDateTime(selectedClient.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>Atualizado em</dt>
+                  <dd>{formatDateTime(selectedClient.updatedAt)}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
         </div>
       )}
 
