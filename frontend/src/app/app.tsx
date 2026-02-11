@@ -133,7 +133,7 @@ export function App() {
             </div>
             <h1 className={styles.pageTitle}>{pageTitle}</h1>
             <span className={styles.userLabel}>
-              Olá, <strong>User</strong>
+              Olá, <strong>Admin</strong>
             </span>
           </header>
         )}
