@@ -1,49 +1,67 @@
 ﻿# Desafio Full-Stack MVP
 
-Este repositório contém um desafio técnico full-stack em formato MVP, servindo como base inicial para futuras implementações.
+Sou o Tech Manager responsável por esta entrega e reuni abaixo o que você precisa saber para operar, evoluir e escalar o projeto com confiança.
 
-## Estrutura do Monorepo
+## Visão Geral
+- **Objetivo**: disponibilizar um console administrativo onde squads podem consultar clientes, acompanhar métricas e manter o cadastro sempre válido.
+- **Formato**: monorepo Nx com aplicações React (frontend) e NestJS (backend).
+- **Foco atual**: CRUD de clientes com paginação, autenticação JWT, métricas Prometheus e UX responsiva.
 
-- `frontend`: aplicação React com Vite e TypeScript, focada somente em layout/base do projeto.
-- `backend`: serviço NestJS configurado com Webpack e Jest para testes.
-- `frontend-e2e` e `backend-e2e`: projetos auxiliares gerados pelo Nx para testes automatizados (sem lógica adicional por enquanto).
+## Arquitetura
+```
+┌──────────────┐        HTTPS         ┌────────────────────┐
+│  Frontend    │  ───────────────▶   │  Backend (NestJS)  │
+│  React/Vite  │ ◀───────────────┐   │  REST + Swagger    │
+└──────────────┘    Auth Token   │   └────────┬──────────┘
+        ▲                            TypeORM   │
+        │                                        
+        │                         ┌─────────────▼────────────┐
+        │                         │ PostgreSQL (Docker local)│
+        │                         └─────────────▲────────────┘
+        │                                       │
+        │          Observability (JSON logs, Prometheus, health checks)
+        └───────────────────────Nx Monorepo Tooling───────────────────────
+```
+- **Front** serve o SPA via Vite e consome a API autenticada. Usa hooks centralizados (`useApi`, `useAuth`) para manter políticas de rede e sessão consistentes.
+- **Back** expõe rotas REST no NestJS, com TypeORM para persistência e DTOs para contratos estáveis. Paginação e validações seguem padrões consistentes entre camadas.
+- **Infra local** utiliza Docker Compose separado para frontend e backend, permitindo subir API + PostgreSQL ou apenas o Vite Dev Server conforme necessidade.
 
-## Como rodar
+## Decisões Tecnológicas
+| Camada | Stack | Motivo da escolha |
+| --- | --- | --- |
+| Build/Workspace | Nx 22 + TypeScript | Orquestra builds/testes num único grafo, facilita cache e padroniza scripts.
+| Frontend | React 19, Vite, CSS Modules | Renderização rápida, DX moderna e isolamento de estilos sem dependência de frameworks pesados.
+| Backend | NestJS 11, TypeORM, class-validator | Fornece arquitetura modular, injeção de dependência nativa e integração direta com PostgreSQL/DTOs.
+| Autenticação | JWT + Auth Guard customizado | Mantém o backend stateless e pronta para escalar horizontalmente.
+| Observabilidade | JSON logs, `/metrics` Prometheus, `/healthz` | Facilita scraping em plataformas como Grafana/Loki e health checks em orquestradores.
+| Testes | Vitest + Testing Library, Jest + Supertest | Cobertura unitária rápida no front e no back, com mocks controlados e fixtures simples.
 
-1. Instale as dependências: `npm install`.
-2. Build frontend: `npx nx build frontend`.
-3. Build backend: `npx nx build backend`.
+## Como Executar
+1. **Instalação** (raiz): `npm install`
+2. **Frontend Dev**: `npx nx dev frontend` (ou `docker compose up --build` dentro de `frontend/`)
+3. **Backend Dev**: `npx nx serve backend` (ou `docker compose up --build` dentro de `backend/` para subir API + PostgreSQL)
+4. **Build**: `npx nx build frontend` / `npx nx build backend`
+5. **Testes**: `npx nx test frontend` / `npx nx test backend`
 
-Todos os comandos utilizam o Nx com npm seguindo os padrões recomendados. Ainda não há lógica de negócio implementada; as aplicações servem como base para as próximas etapas do desafio.
+> Copie os arquivos `.env.example` de cada app para `.env` antes de subir os serviços. O Swagger fica em `http://localhost:3000/docs` e requer Bearer token obtido via `POST /auth/login` usando `AUTH_EMAIL`/`AUTH_PASSWORD` definidos no backend.
 
-## Docker (backend)
+## Escalabilidade
+- **Horizontabilidade**: a API é stateless (JWT + TypeORM) e pode ser replicada atrás de um load balancer sem sessão compartilhada.
+- **Paginação e filtros**: endpoints `/clients` já suportam `page` e `limit`; próximos filtros devem respeitar o mesmo DTO para manter índices eficientes.
+- **Banco**: migrações futuras podem ser gerenciadas com TypeORM CLI ou Nx executors. Considere read replicas quando o volume de relatórios crescer.
+- **Cache e fila**: camada de cache (Redis) pode ser introduzida para dashboards e fila (BullMQ) para tarefas intensivas como relatórios em lote.
 
-O diretório `backend/` contém um `docker-compose.yml` simples com a API NestJS e um PostgreSQL local.
+## Observabilidade
+- **Logs**: toda requisição HTTP sai em JSON estruturado. Plug-and-play com Fluent Bit/Loki.
+- **Health**: `GET /healthz` retorna `status` e `timestamp`, suportando probes HTTP.
+- **Métricas**: `GET /metrics` expõe contadores e histograms com prefixo `client_mgmt_`, prontos para Prometheus.
+- **Alertas**: recomendo acoplar limites (p95 de resposta, erros 5xx) em Grafana/Alertmanager quando for para produção.
 
-1. Entre na pasta: `cd backend`.
-2. Copie o arquivo de variáveis: `cp .env.example .env` (ajuste valores conforme necessário).
-3. Suba os serviços: `docker compose up --build`.
+## Melhorias Planejadas
+1. **Autorização avançada**: perfis/grupos para liberar apenas módulos necessários por usuário.
+2. **Auditoria**: trilhas de alteração de clientes com exportação para SIEM.
+3. **Resiliência**: implementar circuit breaker e retry para integrações externas futuras.
+4. **Acessibilidade**: reforçar testes de teclado/aria no frontend.
+5. **CI/CD**: pipeline automatizado com Nx Cloud para cache distribuído e testes paralelos.
 
-O serviço `api` executa `npx nx serve backend` expondo a porta `3000`, enquanto o serviço `postgres` reutiliza as mesmas variáveis definidas no `.env` para manter os valores centralizados. A documentação Swagger fica disponível em `http://localhost:3000/docs`, com autenticação Bearer habilitada.
-
-### Observabilidade
-
-- Logs estruturados em JSON: todas as requisições HTTP e eventos de inicialização são emitidos em stdout já no formato JSON.
-- `GET /healthz`: retorna um objeto simples com `status` e `timestamp` para uso em probes.
-- `GET /metrics`: expõe métricas no formato Prometheus (com prefixo `client_mgmt_`), prontas para scraping.
-
-### Autenticação
-
-- Use as variáveis `AUTH_EMAIL` e `AUTH_PASSWORD` (definidas no `backend/.env`) para validar o login em `POST /auth/login`.
-- O JWT é gerado com `JWT_SECRET` e `JWT_EXPIRES_IN`; atualize esses valores para ambientes reais.
-- Todos os endpoints de clientes exigem um token Bearer válido — obtenha-o em `/auth/login` e informe no Swagger ou nos headers das requisições.
-
-## Docker (frontend)
-
-O diretório `frontend/` possui um `docker-compose.yml` simples para rodar o Vite com hot reload.
-
-1. Entre na pasta: `cd frontend`.
-2. Copie as variáveis padrão: `cp .env.example .env` (mantenha `VITE_APP_PORT=5173` ou escolha outra porta livre).
-3. Suba o container: `docker compose up --build`.
-
-O serviço `web` utiliza `npx nx dev frontend -- --host 0.0.0.0` para expor a porta 5173 no host, montando o diretório raiz em modo bind para preservar o hot reload.
+Mantenha este README como ponto único de referência para novos integrantes. Qualquer ajuste de arquitetura ou padrão deve ser refletido aqui para garantir alinhamento entre squads.

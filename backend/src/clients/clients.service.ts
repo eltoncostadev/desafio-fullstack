@@ -1,9 +1,9 @@
 ﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { FindOptionsOrder, IsNull, Repository } from 'typeorm';
 import { ClientResponseDto } from './dto/client-response.dto';
 import { CreateClientDto } from './dto/create-client.dto';
-import { ListClientsQueryDto } from './dto/list-clients-query.dto';
+import { ClientOrderField, ListClientsQueryDto } from './dto/list-clients-query.dto';
 import { PaginatedClientsResponseDto } from './dto/paginated-clients-response.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientEntity } from './entities/client.entity';
@@ -19,9 +19,13 @@ export class ClientsService {
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 16;
     const skip = (page - 1) * limit;
+    const orderField: ClientOrderField = query?.orderBy ?? 'createdAt';
+    const order: FindOptionsOrder<ClientEntity> = {
+      [orderField]: 'DESC',
+    };
     const [clients, total] = await this.clientsRepository.findAndCount({
       where: { deletedAt: IsNull() },
-      order: { createdAt: 'DESC' },
+      order,
       skip,
       take: limit,
     });
