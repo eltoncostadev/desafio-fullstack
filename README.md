@@ -1,67 +1,134 @@
-﻿# Desafio Full-Stack MVP
+﻿# Desafio Técnico — Sistema de Gestão de Clientes
 
-Sou o Tech Manager responsável por esta entrega e reuni abaixo o que você precisa saber para operar, evoluir e escalar o projeto com confiança.
+Este projeto implementa um MVP full-stack de gestão de clientes com autenticação, CRUD, dashboard administrativo e observabilidade básica, conforme especificação do desafio.
 
-## Visão Geral
-- **Objetivo**: disponibilizar um console administrativo onde squads podem consultar clientes, acompanhar métricas e manter o cadastro sempre válido.
-- **Formato**: monorepo Nx com aplicações React (frontend) e NestJS (backend).
-- **Foco atual**: CRUD de clientes com paginação, autenticação JWT, métricas Prometheus e UX responsiva.
+A aplicação foi construída com foco em organização arquitetural, separação de responsabilidades e escalabilidade.
 
-## Arquitetura
+---
+
+# 🎯 Visão Geral
+
+O sistema permite:
+
+- Autenticação de usuários com JWT
+- CRUD de clientes com soft delete
+- Listagem paginada de clientes
+- Dashboard administrativo com métricas
+- Contador de acessos por cliente
+- Auditoria com timestamps
+- Monitoramento da aplicação via métricas e health check
+
+O projeto está organizado como **monorepo Nx**, contendo:
+
+- Frontend (React + Vite + TypeScript)
+- Backend (NestJS + TypeORM + PostgreSQL)
+
+Cada aplicação possui ambiente Docker isolado.
+
+---
+
+# 🏗️ Arquitetura — Visão Local
+
+### Fluxo da aplicação
+
+Browser → Frontend → Backend API → Banco de Dados
+
+### Portas e serviços
+
+- Frontend → http://localhost:5173
+- Backend API → http://localhost:3000
+- Swagger → http://localhost:3000/docs
+- PostgreSQL → localhost:5432
+- Redis (opcional) → localhost:6379
+
+---
+
+# 📊 Diagrama de Arquitetura
+
+![alt text](image.png)
+
+```mermaid
+flowchart LR
+    A[Browser] --> B[Frontend - React/Vite]
+    B --> C[Backend - NestJS API]
+    C --> D[(PostgreSQL)]
+    C --> E[Health Check /healthz]
+    C --> F[Metrics /metrics]
 ```
-┌──────────────┐        HTTPS         ┌────────────────────┐
-│  Frontend    │  ───────────────▶   │  Backend (NestJS)  │
-│  React/Vite  │ ◀───────────────┐   │  REST + Swagger    │
-└──────────────┘    Auth Token   │   └────────┬──────────┘
-        ▲                            TypeORM   │
-        │                                        
-        │                         ┌─────────────▼────────────┐
-        │                         │ PostgreSQL (Docker local)│
-        │                         └─────────────▲────────────┘
-        │                                       │
-        │          Observability (JSON logs, Prometheus, health checks)
-        └───────────────────────Nx Monorepo Tooling───────────────────────
+
+---
+
+# 🚀 Instruções Gerais — Execução Local
+
+## 📦 Pré-requisitos
+
+Certifique-se de possuir instalado:
+
+- Docker
+- Docker Compose
+
+Não é necessário instalar Node.js localmente.
+
+
+
+## ⚙️ Passo 1 — Configurar variáveis de ambiente
+
+Copie os arquivos de exemplo de cada aplicação:
+
+```bash
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
 ```
-- **Front** serve o SPA via Vite e consome a API autenticada. Usa hooks centralizados (`useApi`, `useAuth`) para manter políticas de rede e sessão consistentes.
-- **Back** expõe rotas REST no NestJS, com TypeORM para persistência e DTOs para contratos estáveis. Paginação e validações seguem padrões consistentes entre camadas.
-- **Infra local** utiliza Docker Compose separado para frontend e backend, permitindo subir API + PostgreSQL ou apenas o Vite Dev Server conforme necessidade.
 
-## Decisões Tecnológicas
-| Camada | Stack | Motivo da escolha |
-| --- | --- | --- |
-| Build/Workspace | Nx 22 + TypeScript | Orquestra builds/testes num único grafo, facilita cache e padroniza scripts.
-| Frontend | React 19, Vite, CSS Modules | Renderização rápida, DX moderna e isolamento de estilos sem dependência de frameworks pesados.
-| Backend | NestJS 11, TypeORM, class-validator | Fornece arquitetura modular, injeção de dependência nativa e integração direta com PostgreSQL/DTOs.
-| Autenticação | JWT + Auth Guard customizado | Mantém o backend stateless e pronta para escalar horizontalmente.
-| Observabilidade | JSON logs, `/metrics` Prometheus, `/healthz` | Facilita scraping em plataformas como Grafana/Loki e health checks em orquestradores.
-| Testes | Vitest + Testing Library, Jest + Supertest | Cobertura unitária rápida no front e no back, com mocks controlados e fixtures simples.
+## ▶️ Passo 2 — Subir Backend e Banco de Dados
 
-## Como Executar
-1. **Instalação** (raiz): `npm install`
-2. **Frontend Dev**: `npx nx dev frontend` (ou `docker compose up --build` dentro de `frontend/`)
-3. **Backend Dev**: `npx nx serve backend` (ou `docker compose up --build` dentro de `backend/` para subir API + PostgreSQL)
-4. **Build**: `npx nx build frontend` / `npx nx build backend`
-5. **Testes**: `npx nx test frontend` / `npx nx test backend`
+O backend inicia junto com o banco PostgreSQL.
 
-> Copie os arquivos `.env.example` de cada app para `.env` antes de subir os serviços. O Swagger fica em `http://localhost:3000/docs` e requer Bearer token obtido via `POST /auth/login` usando `AUTH_EMAIL`/`AUTH_PASSWORD` definidos no backend.
+Execute:
 
-## Escalabilidade
-- **Horizontabilidade**: a API é stateless (JWT + TypeORM) e pode ser replicada atrás de um load balancer sem sessão compartilhada.
-- **Paginação e filtros**: endpoints `/clients` já suportam `page` e `limit`; próximos filtros devem respeitar o mesmo DTO para manter índices eficientes.
-- **Banco**: migrações futuras podem ser gerenciadas com TypeORM CLI ou Nx executors. Considere read replicas quando o volume de relatórios crescer.
-- **Cache e fila**: camada de cache (Redis) pode ser introduzida para dashboards e fila (BullMQ) para tarefas intensivas como relatórios em lote.
+```bash
+cd backend
+docker compose up --build
+```
 
-## Observabilidade
-- **Logs**: toda requisição HTTP sai em JSON estruturado. Plug-and-play com Fluent Bit/Loki.
-- **Health**: `GET /healthz` retorna `status` e `timestamp`, suportando probes HTTP.
-- **Métricas**: `GET /metrics` expõe contadores e histograms com prefixo `client_mgmt_`, prontos para Prometheus.
-- **Alertas**: recomendo acoplar limites (p95 de resposta, erros 5xx) em Grafana/Alertmanager quando for para produção.
+---
 
-## Melhorias Planejadas
-1. **Autorização avançada**: perfis/grupos para liberar apenas módulos necessários por usuário.
-2. **Auditoria**: trilhas de alteração de clientes com exportação para SIEM.
-3. **Resiliência**: implementar circuit breaker e retry para integrações externas futuras.
-4. **Acessibilidade**: reforçar testes de teclado/aria no frontend.
-5. **CI/CD**: pipeline automatizado com Nx Cloud para cache distribuído e testes paralelos.
+## ▶️ Passo 3 — Subir Frontend
 
-Mantenha este README como ponto único de referência para novos integrantes. Qualquer ajuste de arquitetura ou padrão deve ser refletido aqui para garantir alinhamento entre squads.
+Em um novo terminal, execute:
+
+```bash
+cd frontend
+docker compose up --build
+```
+
+
+# 📊 Observabilidade
+
+Foram implementados mecanismos básicos de observabilidade para monitoramento da aplicação:
+
+- Logs estruturados em JSON → facilitam análise e integração com ferramentas de monitoramento
+- Endpoint /healthz → permite verificação de saúde da aplicação por orquestradores
+- Endpoint /metrics → expõe métricas no formato Prometheus
+- Auditoria com timestamps → permite rastreabilidade de operações
+
+Essas práticas são essenciais para operação confiável em produção.
+
+# ☁️ Arquitetura — Visão AWS (Proposta)
+
+![alt text](cloud-architecture.png)
+
+---
+A aplicação foi projetada para ser implantada na AWS utilizando serviços gerenciados, garantindo escalabilidade, segurança e observabilidade.
+
+O tráfego dos usuários é resolvido via Route 53 e distribuído globalmente pelo CloudFront. O AWS WAF é aplicado na camada de edge para bloquear tráfego malicioso antes que ele alcance a infraestrutura interna.
+
+Dentro da VPC, o Application Load Balancer recebe as requisições e as direciona para containers executando em ECS Fargate, configurados com Auto Scaling baseado em métricas do CloudWatch, permitindo escalabilidade horizontal conforme demanda.
+
+A aplicação executa em subnets privadas, protegida por Security Groups, enquanto o banco de dados PostgreSQL roda em RDS Multi-AZ para alta disponibilidade e tolerância a falhas.
+
+A observabilidade é garantida através do CloudWatch, responsável por métricas, logs e suporte às políticas de escalabilidade automática.
+
+Essa arquitetura garante isolamento de rede, proteção em múltiplas camadas e capacidade de crescimento sob demanda, mantendo baixo overhead operacional.
+
+---
