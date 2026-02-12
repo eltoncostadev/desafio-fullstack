@@ -45,8 +45,6 @@ Browser → Frontend → Backend API → Banco de Dados
 
 # 📊 Diagrama de Arquitetura
 
-![alt text](image.png)
-
 ```mermaid
 flowchart LR
     A[Browser] --> B[Frontend - React/Vite]
